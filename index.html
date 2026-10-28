@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KA Buchen - Mobile App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        body { padding-bottom: 70px; }
+        @media (min-width: 1024px) { body { padding-bottom: 0; } }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col">
+
+    <!-- Mobile Header -->
+    <header class="bg-slate-800/95 backdrop-blur border-b border-slate-700 shadow-lg px-4 py-3 sticky top-0 z-50 flex justify-between items-center">
+        <div class="flex items-center space-x-2.5">
+            <div class="bg-blue-600 text-white p-2 rounded-lg shadow">
+                <i class="fa-solid fa-water text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-base font-bold tracking-tight text-white leading-tight">KA Buchen</h1>
+                <p class="text-[10px] text-slate-400">Mobile Prozess-Steuerung</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700 text-xs">
+            <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" id="status-dot"></span>
+            <span class="text-emerald-400 font-bold" id="global-status">STABIL</span>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 p-4 max-w-4xl mx-auto w-full space-y-4">
+
+        <!-- ================= TAB 1: DASHBOARD & SIMULATION ================= -->
+        <div id="tab-dashboard" class="tab-content active space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-slate-800 border border-slate-700 p-3.5 rounded-xl shadow">
+                    <span class="text-[11px] text-slate-400 block font-medium">CSB Ablauf (&le;30)</span>
+                    <div class="text-xl font-bold text-white mt-0.5" id="out-csb">24.2 <span class="text-xs text-slate-400">mg/l</span></div>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 p-3.5 rounded-xl shadow">
+                    <span class="text-[11px] text-slate-400 block font-medium">NH4-N Ablauf (&le;2.0)</span>
+                    <div class="text-xl font-bold text-white mt-0.5" id="out-nh4">0.65 <span class="text-xs text-slate-400">mg/l</span></div>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 p-3.5 rounded-xl shadow">
+                    <span class="text-[11px] text-slate-400 block font-medium">P_ges Ablauf (&le;0.30)</span>
+                    <div class="text-xl font-bold text-white mt-0.5" id="out-pges">0.22 <span class="text-xs text-slate-400">mg/l</span></div>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 p-3.5 rounded-xl shadow">
+                    <span class="text-[11px] text-slate-400 block font-medium">Ortho-P (&le;0.186)</span>
+                    <div class="text-xl font-bold text-white mt-0.5" id="out-orthop">0.14 <span class="text-xs text-slate-400">mg/l</span></div>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-700 pb-2.5">
+                    <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-sliders text-blue-400"></i><span>Stellschrauben & Last</span>
+                    </h2>
+                    <button onclick="resetDefaults()" class="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300">Standard</button>
+                </div>
+
+                <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-700 text-xs flex justify-between items-center">
+                    <div>
+                        <span class="text-slate-400 block">Modus:</span>
+                        <span class="font-bold text-amber-400" id="mode-status-text">🔄 Auto-Verdünnung</span>
+                    </div>
+                    <button onclick="switchTab(null, 'tab-labor')" class="bg-blue-600 text-white px-2.5 py-1 rounded">Labor</button>
+                </div>
+
+                <div class="space-y-3.5 text-xs">
+                    <div>
+                        <div class="flex justify-between"><span class="text-slate-300 font-medium">Zulaufmenge (Q)</span><strong class="text-blue-400" id="val-q">3500 m³/d</strong></div>
+                        <input type="range" min="1000" max="15000" step="100" value="3500" id="in-q" oninput="calculateAll()" class="w-full accent-blue-500 mt-1.5 h-2 bg-slate-700 rounded-lg">
+                    </div>
+                    <div>
+                        <div class="flex justify-between"><span class="text-slate-300 font-medium">Abwassertemperatur (T)</span><strong class="text-blue-400" id="val-temp">12.0 °C</strong></div>
+                        <input type="range" min="4" max="24" step="0.5" value="12" id="in-temp" oninput="calculateAll()" class="w-full accent-blue-500 mt-1.5 h-2 bg-slate-700 rounded-lg">
+                    </div>
+                    <hr class="border-slate-700">
+                    <div>
+                        <div class="flex justify-between"><span class="text-slate-300 font-medium">TS-Gehalt (TS_BB)</span><strong class="text-emerald-400" id="val-ts">4.0 g/l</strong></div>
+                        <input type="range" min="2.0" max="6.5" step="0.1" value="4.0" id="in-ts" oninput="calculateAll()" class="w-full accent-emerald-500 mt-1.5 h-2 bg-slate-700 rounded-lg">
+                    </div>
+                    <div>
+                        <div class="flex justify-between"><span class="text-slate-300 font-medium">Rücklaufschlamm (RV)</span><strong class="text-emerald-400" id="val-rv">150 % (1.5:1)</strong></div>
+                        <input type="range" min="80" max="250" step="10" value="150" id="in-rv" oninput="calculateAll()" class="w-full accent-emerald-500 mt-1.5 h-2 bg-slate-700 rounded-lg">
+                    </div>
+                    <div>
+                        <div class="flex justify-between"><span class="text-slate-300 font-medium">ÜSS-Abzug (Q_ÜSS)</span><strong class="text-emerald-400" id="val-quss">75 m³/d</strong></div>
+                        <input type="range" min="10" max="300" step="5" value="75" id="in-quss" oninput="calculateAll()" class="w-full accent-emerald-500 mt-1.5 h-2 bg-slate-700 rounded-lg">
+                    </div>
+                    <div>
+                        <div class="flex justify-between"><span class="text-slate-300 font-medium">Qualogic O2-Sollwert</span><strong class="text-purple-400" id="val-o2">0.8 mg/l</strong></div>
+                        <input type="range" min="0.3" max="2.5" step="0.1" value="0.8" id="in-o2" oninput="calculateAll()" class="w-full accent-purple-500 mt-1.5 h-2 bg-slate-700 rounded-lg">
+                    </div>
+                    <div>
+                        <div class="flex justify-between"><span class="text-slate-300 font-medium">FERRACLAR Dosierung</span><strong class="text-yellow-400" id="val-faell">120 l/d</strong></div>
+                        <input type="range" min="20" max="400" step="10" value="120" id="in-faell" oninput="calculateAll()" class="w-full accent-yellow-500 mt-1.5 h-2 bg-slate-700 rounded-lg">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-blue-950/40 border border-blue-800/60 rounded-2xl p-4 shadow">
+                <h3 class="text-xs font-bold text-blue-300 flex items-center space-x-2">
+                    <i class="fa-solid fa-triangle-exclamation"></i><span>Handlungsempfehlung</span>
+                </h3>
+                <p class="text-xs text-slate-200 mt-1.5 leading-relaxed" id="action-text">Alle Betriebsparameter im stabilen Bereich.</p>
+            </div>
+        </div>
+
+        <!-- ================= TAB 2: LABOR-EINGABEN ================= -->
+        <div id="tab-labor" class="tab-content space-y-4">
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow space-y-4 text-xs">
+                <div class="border-b border-slate-700 pb-3 flex justify-between items-center">
+                    <div>
+                        <h2 class="font-bold text-white text-sm"><i class="fa-solid fa-flask-vial text-amber-400 mr-2"></i>Labor-Messwerte</h2>
+                        <p class="text-slate-400 text-[11px] mt-0.5">Manuelle Eingabe &amp; Override</p>
+                    </div>
+                    <button onclick="applyLaborValues()" class="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg shadow">Anwenden</button>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 space-y-2">
+                        <span class="font-bold text-white">Gemessener TS-Gehalt (BB)</span>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" id="lab-ts" value="4.0" min="1.0" max="8.0" step="0.1" oninput="calculateAll()" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white font-bold w-full">
+                            <span class="text-slate-400">g/l</span>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-white">CSB Zulauf</span>
+                            <label class="flex items-center space-x-1 cursor-pointer"><span class="text-[10px] text-slate-400">Override:</span><input type="checkbox" id="check-override-csb" onchange="calculateAll()" class="accent-emerald-500"></label>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" id="lab-csb" value="450" step="10" oninput="calculateAll()" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white font-bold w-full">
+                            <span class="text-slate-400">mg/l</span>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-white">N_ges Zulauf</span>
+                            <label class="flex items-center space-x-1 cursor-pointer"><span class="text-[10px] text-slate-400">Override:</span><input type="checkbox" id="check-override-nges" onchange="calculateAll()" class="accent-emerald-500"></label>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" id="lab-nges" value="55.0" step="1" oninput="calculateAll()" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white font-bold w-full">
+                            <span class="text-slate-400">mg/l</span>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-white">P_ges Zulauf</span>
+                            <label class="flex items-center space-x-1 cursor-pointer"><span class="text-[10px] text-slate-400">Override:</span><input type="checkbox" id="check-override-pges" onchange="calculateAll()" class="accent-emerald-500"></label>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" id="lab-pges" value="7.5" step="0.1" oninput="calculateAll()" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white font-bold w-full">
+                            <span class="text-slate-400">mg/l</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 3: NGES BILANZ ================= -->
+        <div id="tab-nges" class="tab-content space-y-4">
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow space-y-4 text-xs">
+                <h2 class="font-bold text-white text-sm"><i class="fa-solid fa-vial-circle-check text-blue-400 mr-2"></i>Stickstoff-Bilanz</h2>
+                <div class="space-y-3">
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 flex justify-between items-center">
+                        <span class="text-slate-400">N-Zulauffracht:</span>
+                        <strong class="text-blue-400 text-sm" id="nges-out-fracht">192.5 kg/d</strong>
+                    </div>
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 flex justify-between items-center">
+                        <span class="text-slate-400">C/N-Verhältnis:</span>
+                        <strong class="text-emerald-400 text-sm" id="nges-out-cn">8.18</strong>
+                    </div>
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 flex justify-between items-center">
+                        <span class="text-slate-400">Erforderliches RLS:</span>
+                        <strong class="text-purple-400 text-sm" id="nges-out-rv">150 %</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 4: SAISON ================= -->
+        <div id="tab-saison" class="tab-content space-y-4">
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow space-y-4 text-xs">
+                <h2 class="font-bold text-white text-sm"><i class="fa-solid fa-cloud-sun-rain text-amber-400 mr-2"></i>Saison &amp; Regenwetter</h2>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="setMode('sommer')" class="p-2.5 rounded-lg bg-slate-900 border border-amber-500/50 text-left font-bold text-white">☀️ Sommer</button>
+                    <button onclick="setMode('winter')" class="p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-left font-bold text-white">❄️ Winter</button>
+                    <button onclick="setMode('regen')" class="p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-left font-bold text-white">🌧️ Regen</button>
+                </div>
+                <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-700 space-y-2">
+                    <h3 class="font-bold text-white" id="mode-title">☀️ Sommerbetrieb</h3>
+                    <p class="text-slate-300 leading-relaxed" id="mode-why">Im Sommer sorgt die höhere Abwassertemperatur für schnelle Kinetik. Schlammalter sinkt auf 5-6 Tage.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 5: QUALOGIC ================= -->
+        <div id="tab-aqualogic" class="tab-content space-y-4">
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow space-y-4 text-xs">
+                <h2 class="font-bold text-white text-sm"><i class="fa-solid fa-wind text-purple-400 mr-2"></i>Qualogic® Belüftung</h2>
+                <div class="space-y-3">
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 flex justify-between items-center">
+                        <span class="text-slate-400">O2-Sollwert:</span>
+                        <strong class="text-purple-400 text-sm" id="aq-out-o2">0.8 mg/l</strong>
+                    </div>
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 flex justify-between items-center">
+                        <span class="text-slate-400">Gebläse-Energie:</span>
+                        <strong class="text-blue-400 text-sm" id="aq-out-kwh">620 kWh/d</strong>
+                    </div>
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 flex justify-between items-center">
+                        <span class="text-slate-400">Nitrifikations-Effizienz:</span>
+                        <strong class="text-emerald-400 text-sm" id="aq-out-eff">98.5 %</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 6: ÜSS SIMULATOR ================= -->
+        <div id="tab-uss" class="tab-content space-y-4">
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow space-y-4 text-xs">
+                <h2 class="font-bold text-white text-sm"><i class="fa-solid fa-filter text-emerald-400 mr-2"></i>ÜSS-Simulator (Gekoppelt mit TS_BB)</h2>
+                <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-700 space-y-3">
+                    <div class="flex justify-between"><span class="text-slate-400">Basis-TS_BB (Aktiv):</span><strong class="text-emerald-400" id="uss-active-ts-display">4.0 g/l</strong></div>
+                    <div>
+                        <div class="flex justify-between mb-1"><span class="text-slate-300">Geplante ÜSS-Menge:</span><strong class="text-emerald-400" id="uss-val-vol">500 m³</strong></div>
+                        <input type="range" min="50" max="1500" step="25" value="500" id="uss-in-vol" oninput="calculateUSS()" class="w-full accent-emerald-500 h-2 bg-slate-700 rounded-lg">
+                    </div>
+                    <hr class="border-slate-800">
+                    <div class="flex justify-between"><span class="text-slate-400">Entnommene TS-Masse:</span><strong class="text-white" id="uss-res-mass">4.00 t TS</strong></div>
+                    <div class="flex justify-between"><span class="text-slate-400">Rest-TS im BB:</span><strong class="text-emerald-400" id="uss-res-ts">3.02 g/l</strong></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 7: FÄLLMITTEL ================= -->
+        <div id="tab-faellmittel" class="tab-content space-y-4">
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow space-y-4 text-xs">
+                <h2 class="font-bold text-white text-sm"><i class="fa-solid fa-flask text-yellow-400 mr-2"></i>FERRACLAR® Rechner</h2>
+                <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-700 space-y-3">
+                    <div class="flex justify-between"><span class="text-slate-400">P-Zulauffracht:</span><strong class="text-white" id="fm-pfracht">26.25 kg P/d</strong></div>
+                    <div class="flex justify-between"><span class="text-slate-400 font-bold">Dosierpumpe:</span><strong class="text-emerald-400 text-sm" id="fm-vol">5.0 l/h</strong></div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="bg-slate-800 border-t border-slate-700 fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center px-1 py-2 text-[10px] text-slate-400 shadow-xl lg:hidden">
+        <button onclick="switchTab(event, 'tab-dashboard')" class="tab-btn flex flex-col items-center space-y-1 text-blue-400 px-2 py-1">
+            <i class="fa-solid fa-chart-line text-base"></i><span>Dashboard</span>
+        </button>
+        <button onclick="switchTab(event, 'tab-labor')" class="tab-btn flex flex-col items-center space-y-1 px-2 py-1">
+            <i class="fa-solid fa-flask-vial text-base"></i><span>Labor</span>
+        </button>
+        <button onclick="switchTab(event, 'tab-nges')" class="tab-btn flex flex-col items-center space-y-1 px-2 py-1">
+            <i class="fa-solid fa-vial-circle-check text-base"></i><span>Nges</span>
+        </button>
+        <button onclick="switchTab(event, 'tab-saison')" class="tab-btn flex flex-col items-center space-y-1 px-2 py-1">
+            <i class="fa-solid fa-cloud-sun-rain text-base"></i><span>Saison</span>
+        </button>
+        <button onclick="switchTab(event, 'tab-aqualogic')" class="tab-btn flex flex-col items-center space-y-1 px-2 py-1">
+            <i class="fa-solid fa-wind text-base"></i><span>Qualogic</span>
+        </button>
+        <button onclick="switchTab(event, 'tab-uss')" class="tab-btn flex flex-col items-center space-y-1 px-2 py-1">
+            <i class="fa-solid fa-filter text-base"></i><span>ÜSS</span>
+        </button>
+        <button onclick="switchTab(event, 'tab-faellmittel')" class="tab-btn flex flex-col items-center space-y-1 px-2 py-1">
+            <i class="fa-solid fa-flask text-base"></i><span>Fällmittel</span>
+        </button>
+    </nav>
+
+    <script>
+        function switchTab(event, tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('text-blue-400'));
+            document.getElementById(tabId).classList.add('active');
+            if(event && event.currentTarget) {
+                event.currentTarget.classList.add('text-blue-400');
+            } else {
+                const buttons = document.querySelectorAll('.tab-btn');
+                buttons.forEach(b => {
+                    if(b.getAttribute('onclick') && b.getAttribute('onclick').includes(tabId)) {
+                        b.classList.add('text-blue-400');
+                    }
+                });
+            }
+            if(tabId === 'tab-uss') calculateUSS();
+        }
+
+        const modesData = {
+            sommer: { title: "☀️ Sommerbetrieb", why: "Höhere Temp (> 14°C) beschleunigt Kinetik. Schlammalter sinkt auf 5-6 Tage." },
+            winter: { title: "❄️ Winterbetrieb", why: "Kälteres Wasser verlangsamt Nitrifikation. TS rechtzeitig auf 4.0 - 4.5 g/l anheben." },
+            regen: { title: "🌧️ Starkregen", why: "Hoher Zufluss über DN 600. RLS auf 2:1 anheben und ÜSS-Abzug stoppen." }
+        };
+
+        function setMode(key) {
+            const m = modesData[key];
+            document.getElementById('mode-title').innerText = m.title;
+            document.getElementById('mode-why').innerText = m.why;
+        }
+
+        function calculateAll() {
+            const q = parseFloat(document.getElementById('in-q').value);
+            const temp = parseFloat(document.getElementById('in-temp').value);
+            const ts_bb = parseFloat(document.getElementById('in-ts').value);
+            const rv = parseFloat(document.getElementById('in-rv').value);
+            const quss = parseFloat(document.getElementById('in-quss').value);
+            const o2_soll = parseFloat(document.getElementById('in-o2').value);
+            const faell = parseFloat(document.getElementById('in-faell').value);
+
+            const override_csb = document.getElementById('check-override-csb').checked;
+            const override_nges = document.getElementById('check-override-nges').checked;
+            const override_pges = document.getElementById('check-override-pges').checked;
+
+            const lab_csb = parseFloat(document.getElementById('lab-csb').value);
+            const lab_nges = parseFloat(document.getElementById('lab-nges').value);
+            const lab_pges = parseFloat(document.getElementById('lab-pges').value);
+
+            const q_dry = 3500;
+            const dilution = q > q_dry ? (q_dry / q) + ((q - q_dry) / q) * 0.1 : 1.0;
+
+            const csb_in = override_csb ? lab_csb : Math.round(450 * dilution);
+            const nges_in = override_nges ? lab_nges : (55.0 * dilution);
+            const pges_in = override_pges ? lab_pges : (7.5 * dilution);
+
+            document.getElementById('val-q').innerText = q + " m³/d";
+            document.getElementById('val-temp').innerText = temp.toFixed(1) + " °C";
+            document.getElementById('val-ts').innerText = ts_bb.toFixed(1) + " g/l";
+            document.getElementById('val-rv').innerText = rv + " %";
+            document.getElementById('val-quss').innerText = quss + " m³/d";
+            document.getElementById('val-o2').innerText = o2_soll.toFixed(1) + " mg/l";
+            document.getElementById('val-faell').innerText = faell + " l/d";
+
+            const v_bb = 4085;
+            const a_nkb = 615;
+            const m_ts = v_bb * ts_bb / 1000;
+            const m_uss_day = quss * 8.0 / 1000;
+            const t_ts = m_uss_day > 0 ? m_ts / m_uss_day : 30;
+            const t_ts_erf = 8.2 * Math.exp(-0.06 * (temp - 10));
+
+            const q_a = q / (a_nkb * 24);
+            const q_sv = q_a * ts_bb * 120 / 1000;
+
+            const o2_factor = o2_soll / (0.4 + o2_soll);
+            const nitri_ok = t_ts >= t_ts_erf;
+            let nh4_out = nitri_ok ? Math.max(0.2, 1.2 * (1.2 - o2_factor)) : Math.max(3.5, nges_in * 0.7 * (1 - (t_ts / t_ts_erf) * o2_factor));
+
+            let afs_out = 8 + (q_sv > 1.0 ? (q_sv - 1.0) * 18 : 0);
+            let csb_out = 15 + (csb_in * 0.015) + (afs_out * 1.2);
+
+            const mol_faell = faell * 1.31 * 2.19;
+            const p_load_kg = q * pges_in / 1000;
+            const mol_p = (p_load_kg * 1000) / 30.97;
+            const beta = mol_p > 0 ? mol_faell / mol_p : 1.0;
+
+            let p_ges_out = beta >= 1.3 ? 0.15 : (beta >= 1.1 ? 0.28 : 0.55);
+            p_ges_out += (afs_out * 0.025);
+            let ortho_p_out = p_ges_out * 0.60;
+
+            document.getElementById('out-csb').innerHTML = csb_out.toFixed(1) + ' <span class="text-xs text-slate-400">mg/l</span>';
+            document.getElementById('out-nh4').innerHTML = nh4_out.toFixed(2) + ' <span class="text-xs text-slate-400">mg/l</span>';
+            document.getElementById('out-pges').innerHTML = p_ges_out.toFixed(2) + ' <span class="text-xs text-slate-400">mg/l</span>';
+            document.getElementById('out-orthop').innerHTML = ortho_p_out.toFixed(3) + ' <span class="text-xs text-slate-400">mg/l</span>';
+
+            let statusText = "STABIL";
+            let statusColor = "text-emerald-400";
+            let actionMsg = "Alle Betriebsparameter im grünen Bereich.";
+
+            if (nh4_out > 2.0 || p_ges_out > 0.30 || ortho_p_out > 0.186 || q_sv > 1.6) {
+                statusText = "WARNUNG";
+                statusColor = "text-amber-400";
+                actionMsg = "⚠️ Achtung: Grenzwerte gefährdet!";
+                if(q_sv > 1.6) actionMsg += " NKB überlastet (RLS erhöhen).";
+            }
+
+            document.getElementById('global-status').innerText = statusText;
+            document.getElementById('global-status').className = statusColor + " font-bold";
+            document.getElementById('action-text').innerText = actionMsg;
+
+            document.getElementById('nges-out-fracht').innerText = (q * nges_in / 1000).toFixed(1) + " kg/d";
+            document.getElementById('nges-out-cn').innerText = (csb_in / nges_in).toFixed(2);
+            document.getElementById('nges-out-rv').innerText = rv + " %";
+
+            document.getElementById('aq-out-o2').innerText = o2_soll.toFixed(1) + " mg/l";
+            document.getElementById('aq-out-kwh').innerText = Math.round(450 * (o2_soll / 0.8)) + " kWh/d";
+            document.getElementById('aq-out-eff').innerText = (nitri_ok ? "98.8" : "81.2") + " %";
+
+            document.getElementById('fm-pfracht').innerText = p_load_kg.toFixed(2) + " kg P/d";
+            document.getElementById('fm-vol').innerText = ((p_load_kg * 1.4 * 3.5 / 1.31) / 24).toFixed(1) + " l/h";
+        }
+
+        function applyLaborValues() {
+            const labTS = parseFloat(document.getElementById('lab-ts').value);
+            document.getElementById('in-ts').value = labTS;
+            document.getElementById('check-override-csb').checked = true;
+            document.getElementById('check-override-nges').checked = true;
+            document.getElementById('check-override-pges').checked = true;
+            calculateAll();
+            switchTab(null, 'tab-dashboard');
+        }
+
+        function calculateUSS() {
+            const vol = parseFloat(document.getElementById('uss-in-vol').value);
+            document.getElementById('uss-val-vol').innerText = vol + " m³";
+            const currentTS = parseFloat(document.getElementById('in-ts').value);
+            document.getElementById('uss-active-ts-display').innerText = currentTS.toFixed(1) + " g/l";
+
+            const mass = vol * 8.0 / 1000;
+            document.getElementById('uss-res-mass').innerText = mass.toFixed(2) + " t TS";
+            const ts_after = Math.max(1.5, currentTS - (mass * 1000 / 4085));
+            document.getElementById('uss-res-ts').innerText = ts_after.toFixed(2) + " g/l";
+        }
+
+        function resetDefaults() {
+            document.getElementById('in-q').value = 3500;
+            document.getElementById('in-temp').value = 12;
+            document.getElementById('in-ts').value = 4.0;
+            document.getElementById('lab-ts').value = 4.0;
+            document.getElementById('in-rv').value = 150;
+            document.getElementById('in-quss').value = 75;
+            document.getElementById('in-o2').value = 0.8;
+            document.getElementById('in-faell').value = 120;
+            document.getElementById('check-override-csb').checked = false;
+            document.getElementById('check-override-nges').checked = false;
+            document.getElementById('check-override-pges').checked = false;
+            calculateAll();
+            calculateUSS();
+        }
+
+        window.onload = function() {
+            calculateAll();
+            calculateUSS();
+        };
+    </script>
+</body>
+</html>
