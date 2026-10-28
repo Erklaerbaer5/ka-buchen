@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KA Buchen - Mobile App v21</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        body { padding-bottom: 70px; }
+        @media (min-width: 1024px) { body { padding-bottom: 0; } }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col">
+
+    <!-- Mobile Header -->
+    <header class="bg-slate-800/95 backdrop-blur border-b border-slate-700 shadow-lg px-4 py-3 sticky top-0 z-50 flex justify-between items-center">
+        <div class="flex items-center space-x-2.5">
+            <div class="bg-blue-600 text-white p-2 rounded-lg shadow">
+                <i class="fa-solid fa-water text-lg"></i>
+            </div>
+            <div>
+                <h1 class="text-base font-bold tracking-tight text-white leading-tight">KA Buchen</h1>
+                <p class="text-[10px] text-slate-400">Prozess- &amp; Fällmittel-Steuerung</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700 text-xs">
+            <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" id="status-dot"></span>
+            <span class="text-emerald-400 font-bold" id="global-status">STABIL</span>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 p-4 max-w-4xl mx-auto w-full space-y-4">
+
+        <!-- ================= TAB 1: DASHBOARD & SIMULATION ================= -->
+        <div id="tab-dashboard" class="tab-content active space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-slate-800 border border-slate-700 p-3.5 rounded-xl shadow">
+                    <span class="text-[11px] text-slate-400 block font-medium">CSB Ablauf (&le;30)</span>
+                    <div class="text-xl font-bold text-white mt-0.5" id="out-csb">24.2 <span class="text-xs text-slate-400">mg/l</span></div>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 p-3.5 rounded-xl shadow">
+                    <span class="text-[11px] text-slate-400 block font-medium">NH4-N Ablauf (&le;2.0)</span>
+                    <div class="text-xl font-bold text-white mt-0.5" id="out-nh4">0.65 <span class="text-xs text-slate-400">mg/l</span></div>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 p-3.5 rounded-xl shadow">
+                    <span class="text-[11px] text-slate-400 block font-medium">P_ges Ablauf (&le;0.30)</span>
+                    <div class="text-xl font-bold text-white mt-0.5" id="out-pges">0.22 <span class="text-xs text-slate-400">mg/l</span></div>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 p-3.5 rounded-xl shadow">
+                    <span class="text-[11px] text-slate-400 block font-medium">Fremdwasser-Anteil</span>
+                    <div class="text-xl font-bold text-blue-400 mt-0.5" id="out-fw-share">25 <span class="text-xs text-slate-400">%</span></div>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-700 pb-2.5">
+                    <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-sliders text-blue-400"></i><span>Stellschrauben &amp; Fremdwasser</span>
+                    </h2>
+                    <button onclick="resetDefaults()" class="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300">Standard</button>
+                </div>
+
+                <div class="space-y-3.5 text-xs">
+                    <div>
+                        <div class="flex justify-between"><span class="text-slate-300 font-medium">Zulaufmenge (Q)</span><strong class="text-blue-400" id="val-q">3500 m³/d</strong></div>
+                        <input type="range" min="1000" max="15000" step="100" value="3500" id="in-q" oninput="calculateAll()" class="w-full accent-blue-500 mt-1.5 h-2 bg-slate-700 rounded-lg">
+                    </div>
+                    <div>
+                        <div class="flex justify-between"><span class="text-slate-300 font-medium">Fremdwasserfaktor (FW-Anteil)</span><strong class="text-blue-400" id="val-fw">25 %</strong></div>
+                        <input type="range" min="5" max="70" step="1" value="25" id="in-fw" oninput="calculateAll()" class="w-full accent-blue-500 mt-1.5 h-2 bg-slate-700 rounded-lg">
+                    </div>
+                    <div>
+                        <div class="flex justify-between"><span class="text-slate-300 font-medium">Abwassertemperatur (T)</span><strong class="text-blue-400" id="val-temp">12.0 °C</strong></div>
+                        <input type="range" min="4" max="24" step="0.5" value="12" id="in-temp" oninput="calculateAll()" class="w-full accent-blue-500 mt-1.5 h-2 bg-slate-700 rounded-lg">
+                    </div>
+                    <hr class="border-slate-700">
+                    <div>
+                        <div class="flex justify-between"><span class="text-slate-300 font-medium">TS-Gehalt (TS_BB)</span><strong class="text-emerald-400" id="val-ts">4.0 g/l</strong></div>
+                        <input type="range" min="2.0" max="6.5" step="0.1" value="4.0" id="in-ts" oninput="calculateAll()" class="w-full accent-emerald-500 mt-1.5 h-2 bg-slate-700 rounded-lg">
+                    </div>
+                    <div>
+                        <div class="flex justify-between"><span class="text-slate-300 font-medium">Schlammvolumen (SV)</span><strong class="text-amber-400" id="val-sv">400 ml/l (40%)</strong></div>
+                        <input type="range" min="100" max="900" step="10" value="400" id="in-sv" oninput="calculateAll()" class="w-full accent-amber-500 mt-1.5 h-2 bg-slate-700 rounded-lg">
+                    </div>
+                    <div>
+                        <div class="flex justify-between"><span class="text-slate-300 font-medium">Schlammindex (SVI)</span><strong class="text-purple-400" id="val-svi">100 ml/g</strong></div>
+                        <input type="range" min="50" max="250" step="5" value="100" id="in-svi" oninput="calculateAll()" class="w-full accent-purple-500 mt-1.5 h-2 bg-slate-700 rounded-lg">
+                    </div>
+                    <div>
+                        <div class="flex justify-between"><span class="text-slate-300 font-medium">Rücklaufschlamm (RV)</span><strong class="text-emerald-400" id="val-rv">150 %</strong></div>
+                        <input type="range" min="80" max="250" step="10" value="150" id="in-rv" oninput="calculateAll()" class="w-full accent-emerald-500 mt-1.5 h-2 bg-slate-700 rounded-lg">
+                    </div>
+                    <div>
+                        <div class="flex justify-between"><span class="text-slate-300 font-medium">ÜSS-Abzug (Q_ÜSS)</span><strong class="text-emerald-400" id="val-quss">75 m³/d</strong></div>
+                        <input type="range" min="10" max="300" step="5" value="75" id="in-quss" oninput="calculateAll()" class="w-full accent-emerald-500 mt-1.5 h-2 bg-slate-700 rounded-lg">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-blue-950/40 border border-blue-800/60 rounded-2xl p-4 shadow">
+                <h3 class="text-xs font-bold text-blue-300 flex items-center space-x-2">
+                    <i class="fa-solid fa-triangle-exclamation"></i><span>Handlungsempfehlung</span>
+                </h3>
+                <p class="text-xs text-slate-200 mt-1.5 leading-relaxed" id="action-text">Alle Betriebsparameter im stabilen Bereich.</p>
+            </div>
+        </div>
+
+        <!-- ================= TAB 2: LABOR-EINGABEN ================= -->
+        <div id="tab-labor" class="tab-content space-y-4">
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow space-y-4 text-xs">
+                <div class="border-b border-slate-700 pb-3 flex justify-between items-center">
+                    <div>
+                        <h2 class="font-bold text-white text-sm"><i class="fa-solid fa-flask-vial text-amber-400 mr-2"></i>Labor-Messwerte</h2>
+                        <p class="text-slate-400 text-[11px] mt-0.5">TS, Schlammvolumen &amp; Index eintragen</p>
+                    </div>
+                    <button onclick="applyLaborValues()" class="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg shadow">Anwenden</button>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 space-y-2">
+                        <span class="font-bold text-white">TS-Gehalt (BB)</span>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" id="lab-ts" value="4.0" min="1.0" max="8.0" step="0.1" oninput="syncLabToSliders()" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white font-bold w-full">
+                            <span class="text-slate-400">g/l</span>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 space-y-2">
+                        <span class="font-bold text-white">Schlammvolumen (SV 30min)</span>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" id="lab-sv" value="400" min="50" max="950" step="10" oninput="syncLabToSliders()" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white font-bold w-full">
+                            <span class="text-slate-400">ml/l</span>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 space-y-2">
+                        <span class="font-bold text-white">Schlammindex (SVI) [Auto-Berechnet oder manuell]</span>
+                        <div class="flex items-center space-x-2">
+                            <input type="number" id="lab-svi" value="100" min="30" max="400" step="1" oninput="syncLabToSliders()" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white font-bold w-full">
+                            <span class="text-slate-400">ml/g</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 3: NGES BILANZ ================= -->
+        <div id="tab-nges" class="tab-content space-y-4">
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow space-y-4 text-xs">
+                <h2 class="font-bold text-white text-sm"><i class="fa-solid fa-vial-circle-check text-blue-400 mr-2"></i>Stickstoff-Bilanz &amp; Fremdwasser-Einfluss</h2>
+                <div class="space-y-3">
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 flex justify-between items-center"><span class="text-slate-400">N-Zulauffracht:</span><strong class="text-blue-400 text-sm" id="nges-out-fracht">192.5 kg/d</strong></div>
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 flex justify-between items-center"><span class="text-slate-400">Eff. Schmutzwasserfracht (ohne FW):</span><strong class="text-emerald-400 text-sm" id="nges-out-pure">144.4 m³/d</strong></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 4: SAISON ================= -->
+        <div id="tab-saison" class="tab-content space-y-4">
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow space-y-4 text-xs">
+                <h2 class="font-bold text-white text-sm"><i class="fa-solid fa-cloud-sun-rain text-amber-400 mr-2"></i>Saison &amp; Regenwetter</h2>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="setMode('sommer')" class="p-2.5 rounded-lg bg-slate-900 border border-amber-500/50 text-left font-bold text-white">☀️ Sommer</button>
+                    <button onclick="setMode('winter')" class="p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-left font-bold text-white">❄️ Winter</button>
+                    <button onclick="setMode('regen')" class="p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-left font-bold text-white">🌧️ Regen</button>
+                </div>
+                <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-700 space-y-2">
+                    <h3 class="font-bold text-white" id="mode-title">☀️ Sommerbetrieb</h3>
+                    <p class="text-slate-300 leading-relaxed" id="mode-why">Höhere Temp (&gt; 14°C) beschleunigt Kinetik. Schlammalter sinkt auf 5-6 Tage.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 5: QUALOGIC ================= -->
+        <div id="tab-aqualogic" class="tab-content space-y-4">
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow space-y-4 text-xs">
+                <h2 class="font-bold text-white text-sm"><i class="fa-solid fa-wind text-purple-400 mr-2"></i>Qualogic® Belüftung</h2>
+                <div class="space-y-3">
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 flex justify-between items-center"><span class="text-slate-400">O2-Sollwert:</span><strong class="text-purple-400 text-sm" id="aq-out-o2">0.8 mg/l</strong></div>
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 flex justify-between items-center"><span class="text-slate-400">Gebläse-Energie:</span><strong class="text-blue-400 text-sm" id="aq-out-kwh">620 kWh/d</strong></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 6: ÜSS SIMULATOR ================= -->
+        <div id="tab-uss" class="tab-content space-y-4">
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow space-y-4 text-xs">
+                <h2 class="font-bold text-white text-sm"><i class="fa-solid fa-filter text-emerald-400 mr-2"></i>SV- &amp; ÜSS-Zielrechner (Bidirektional)</h2>
+                <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-700 space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <span class="text-slate-400 block mb-1">IST-SV (ml/l)</span>
+                            <input type="number" id="uss-sv-curr" value="500" min="100" max="950" step="10" oninput="calculateBidirectionalSV()" class="bg-slate-800 border border-slate-600 rounded px-2.5 py-1.5 text-white font-bold w-full">
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block mb-1">Ziel-SV (ml/l)</span>
+                            <input type="number" id="uss-sv-target" value="400" min="50" max="900" step="10" oninput="calculateBidirectionalSV()" class="bg-slate-800 border border-slate-600 rounded px-2.5 py-1.5 text-white font-bold w-full">
+                        </div>
+                    </div>
+                    <hr class="border-slate-800">
+                    <div class="flex justify-between"><span class="text-slate-400">Aktiver IST-TS_BB:</span><strong class="text-emerald-400" id="uss-res-ts-curr">4.0 g/l</strong></div>
+                    <div class="flex justify-between"><span class="text-slate-400">Aktiver Schlammindex (SVI):</span><strong class="text-purple-400" id="uss-res-svi">100 ml/g</strong></div>
+                    <div class="flex justify-between"><span class="text-slate-400">Erforderlicher Ziel-TS:</span><strong class="text-emerald-400" id="uss-res-ts-target">3.2 g/l</strong></div>
+                    <hr class="border-slate-800">
+                    <div class="flex justify-between"><span class="text-slate-400 font-bold">Auszuziehende TS-Masse:</span><strong class="text-white text-sm" id="uss-res-mass">3.27 t TS</strong></div>
+                    <div class="flex justify-between"><span class="text-slate-400 font-bold">Benötigtes ÜSS-Volumen (Q_ÜSS):</span><strong class="text-amber-400 text-sm" id="uss-res-vol">817 m³</strong></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 7: FÄLLMITTEL (ANPASSBAR) ================= -->
+        <div id="tab-faellmittel" class="tab-content space-y-4">
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow space-y-4 text-xs">
+                <div class="border-b border-slate-700 pb-3 flex justify-between items-center">
+                    <div>
+                        <h2 class="font-bold text-white text-sm"><i class="fa-solid fa-flask text-yellow-400 mr-2"></i>Fällmittel-Rechner (Flexibel)</h2>
+                        <p class="text-slate-400 text-[11px] mt-0.5">Wähle Eisen-, Aluminium-, Mischprodukte oder passe die Faktoren an</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 space-y-2">
+                        <span class="font-bold text-white">Fällmittel-Produkt auswählen</span>
+                        <select id="fm-product-select" onchange="onProductSelect()" class="bg-slate-800 border border-slate-600 rounded px-2.5 py-2 text-white font-bold w-full">
+                            <optgroup label="Eisen-Produkte (P-Fällung)">
+                                <option value="ferraclar">FERRACLAR (Eisen-(II)-sulfat)</option>
+                                <option value="pix113">PIX 113 (Eisen-(III)-chlorid Lösung)</option>
+                                <option value="ferripol">FERRIPOL / Eisen-(III)-sulfat</option>
+                            </optgroup>
+                            <optgroup label="Aluminium-Produkte / Aluminate">
+                                <option value="pax18">PAX 18 (Polyaluminiumchlorid)</option>
+                                <option value="sodium_aluminate">Natriumaluminat (Flüssig)</option>
+                                <option value="hyperfloc_al">Aluminiumsulfat-Lösung</option>
+                            </optgroup>
+                            <optgroup label="Mischprodukte (Fe/Al-Kombination)">
+                                <option value="mix_fe_al_1">IXI / Eisen-Aluminium-Mischprodukt 1</option>
+                                <option value="mix_fe_al_2">Flockungsmischung Fe/Al (Typ 2)</option>
+                                <option value="poly_fe_al">Polymere Eisen-Aluminium-Lösung</option>
+                            </optgroup>
+                            <option value="custom">Eigene / Benutzerdefiniert</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 space-y-1.5">
+                            <span class="text-slate-400">Dichte (&rho; in kg/l)</span>
+                            <input type="number" id="fm-density" value="1.31" step="0.01" oninput="calculateFaellmittel()" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white font-bold w-full">
+                        </div>
+                        <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 space-y-1.5">
+                            <span class="text-slate-400">Wirkstoff / Metallgehalt (%)</span>
+                            <input type="number" id="fm-metal" value="12.0" step="0.5" oninput="calculateFaellmittel()" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white font-bold w-full">
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 space-y-1.5">
+                        <span class="text-slate-400">Stöchiometrischer Mol-Faktor (Me:P Verhältnis)</span>
+                        <input type="number" id="fm-mol-ratio" value="1.5" step="0.1" oninput="calculateFaellmittel()" class="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white font-bold w-full">
+                    </div>
+
+                    <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-700 space-y-2.5">
+                        <div class="flex justify-between"><span class="text-slate-400">P-Fracht im Zulauf (berücksichtigt Fremdwasser):</span><strong class="text-white" id="fm-res-pfracht">26.25 kg P/d</strong></div>
+                        <div class="flex justify-between"><span class="text-slate-400 font-bold">Benötigte Fällmittel-Menge:</span><strong class="text-yellow-400 text-sm" id="fm-res-l-day">145 l/d</strong></div>
+                        <div class="flex justify-between pt-1 border-t border-slate-800"><span class="text-slate-300 font-bold">Dosierpumpen-Leistung:</span><strong class="text-emerald-400 text-base" id="fm-res-l-h">6.0 l/h</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="bg-slate-800 border-t border-slate-700 fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center px-1 py-2 text-[10px] text-slate-400 shadow-xl lg:hidden">
+        <button onclick="switchTab(event, 'tab-dashboard')" class="tab-btn flex flex-col items-center space-y-1 text-blue-400 px-2 py-1"><i class="fa-solid fa-chart-line text-base"></i><span>Dashboard</span></button>
+        <button onclick="switchTab(event, 'tab-labor')" class="tab-btn flex flex-col items-center space-y-1 px-2 py-1"><i class="fa-solid fa-flask-vial text-base"></i><span>Labor</span></button>
+        <button onclick="switchTab(event, 'tab-nges')" class="tab-btn flex flex-col items-center space-y-1 px-2 py-1"><i class="fa-solid fa-vial-circle-check text-base"></i><span>Nges</span></button>
+        <button onclick="switchTab(event, 'tab-saison')" class="tab-btn flex flex-col items-center space-y-1 px-2 py-1"><i class="fa-solid fa-cloud-sun-rain text-base"></i><span>Saison</span></button>
+        <button onclick="switchTab(event, 'tab-aqualogic')" class="tab-btn flex flex-col items-center space-y-1 px-2 py-1"><i class="fa-solid fa-wind text-base"></i><span>Qualogic</span></button>
+        <button onclick="switchTab(event, 'tab-uss')" class="tab-btn flex flex-col items-center space-y-1 px-2 py-1"><i class="fa-solid fa-filter text-base"></i><span>ÜSS</span></button>
+        <button onclick="switchTab(event, 'tab-faellmittel')" class="tab-btn flex flex-col items-center space-y-1 px-2 py-1"><i class="fa-solid fa-flask text-base"></i><span>Fällmittel</span></button>
+    </nav>
+
+    <script>
+        function switchTab(event, tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('text-blue-400'));
+            document.getElementById(tabId).classList.add('active');
+            if(event && event.currentTarget) {
+                event.currentTarget.classList.add('text-blue-400');
+            } else {
+                document.querySelectorAll('.tab-btn').forEach(b => {
+                    if(b.getAttribute('onclick') && b.getAttribute('onclick').includes(tabId)) b.classList.add('text-blue-400');
+                });
+            }
+            if(tabId === 'tab-uss') calculateBidirectionalSV();
+            if(tabId === 'tab-faellmittel') calculateFaellmittel();
+        }
+
+        const productPresets = {
+            ferraclar: { density: 1.31, metal: 12.0, ratio: 1.5 },
+            pix113: { density: 1.42, metal: 14.2, ratio: 1.3 },
+            ferripol: { density: 1.55, metal: 12.5, ratio: 1.4 },
+            pax18: { density: 1.35, metal: 9.0, ratio: 1.8 },
+            sodium_aluminate: { density: 1.45, metal: 18.0, ratio: 1.6 },
+            hyperfloc_al: { density: 1.30, metal: 8.0, ratio: 1.7 },
+            mix_fe_al_1: { density: 1.38, metal: 11.0, ratio: 1.4 },
+            mix_fe_al_2: { density: 1.40, metal: 12.0, ratio: 1.5 },
+            poly_fe_al: { density: 1.42, metal: 13.5, ratio: 1.3 }
+        };
+
+        function onProductSelect() {
+            const prod = document.getElementById('fm-product-select').value;
+            if(prod !== 'custom' && productPresets[prod]) {
+                const p = productPresets[prod];
+                document.getElementById('fm-density').value = p.density;
+                document.getElementById('fm-metal').value = p.metal;
+                document.getElementById('fm-mol-ratio').value = p.ratio;
+            }
+            calculateFaellmittel();
+        }
+
+        function calculateFaellmittel() {
+            const q = parseFloat(document.getElementById('in-q').value);
+            const fw = parseFloat(document.getElementById('in-fw').value) / 100;
+            
+            const effectiveQ = q * (1 - fw);
+            const p_load_kg = effectiveQ * 7.5 / 1000;
+            
+            const density = parseFloat(document.getElementById('fm-density').value) || 1.31;
+            const metalPct = parseFloat(document.getElementById('fm-metal').value) || 12.0;
+            const molRatio = parseFloat(document.getElementById('fm-mol-ratio').value) || 1.5;
+
+            const molesP = (p_load_kg * 1000) / 30.97;
+            const molesMetalNeeded = molesP * molRatio;
+            const massMetalG = molesMetalNeeded * 55.85; 
+            const massProductKg = massMetalG / (metalPct / 100) / 1000;
+            const volumeLitersDay = massProductKg / density;
+            const volumeLitersHour = volumeLitersDay / 24;
+
+            document.getElementById('fm-res-pfracht').innerText = p_load_kg.toFixed(2) + " kg P/d (" + Math.round(q * (1-fw)) + " m³/d Schmutzwasser)";
+            document.getElementById('fm-res-l-day').innerText = Math.round(volumeLitersDay) + " l/d";
+            document.getElementById('fm-res-l-h').innerText = volumeLitersHour.toFixed(1) + " l/h";
+        }
+
+        function calculateAll() {
+            const q = parseFloat(document.getElementById('in-q').value);
+            const fw = parseFloat(document.getElementById('in-fw').value);
+            const temp = parseFloat(document.getElementById('in-temp').value);
+            const ts_bb = parseFloat(document.getElementById('in-ts').value);
+            const sv = parseFloat(document.getElementById('in-sv').value);
+            const svi = parseFloat(document.getElementById('in-svi').value);
+            const rv = parseFloat(document.getElementById('in-rv').value);
+            const quss = parseFloat(document.getElementById('in-quss').value);
+
+            document.getElementById('val-q').innerText = q + " m³/d";
+            document.getElementById('val-fw').innerText = fw + " %";
+            document.getElementById('out-fw-share').innerHTML = fw + ' <span class="text-xs text-slate-400">%</span>';
+            document.getElementById('val-temp').innerText = temp.toFixed(1) + " °C";
+            document.getElementById('val-ts').innerText = ts_bb.toFixed(1) + " g/l";
+            document.getElementById('val-sv').innerText = sv + " ml/l (" + (sv/10).toFixed(0) + "%)";
+            document.getElementById('val-svi').innerText = svi + " ml/g";
+            document.getElementById('val-rv').innerText = rv + " %";
+            document.getElementById('val-quss').innerText = quss + " m³/d";
+
+            const a_nkb = 615;
+            const q_a = q / (a_nkb * 24);
+            const q_sv = q_a * (sv / 100);
+
+            let csb_out = 18 + (q > 5000 ? 5 : 0) + (q_sv > 1.2 ? (q_sv - 1.2) * 15 : 0);
+            let nh4_out = temp < 10 ? 1.4 : 0.55;
+            let p_ges_out = 0.20;
+
+            document.getElementById('out-csb').innerHTML = csb_out.toFixed(1) + ' <span class="text-xs text-slate-400">mg/l</span>';
+            document.getElementById('out-nh4').innerHTML = nh4_out.toFixed(2) + ' <span class="text-xs text-slate-400">mg/l</span>';
+            document.getElementById('out-pges').innerHTML = p_ges_out.toFixed(2) + ' <span class="text-xs text-slate-400">mg/l</span>';
+            document.getElementById('out-qsv').innerHTML = q_sv.toFixed(2) + ' <span class="text-xs text-slate-400">m³/m²h</span>';
+
+            let statusText = "STABIL";
+            let statusColor = "text-emerald-400";
+            let actionMsg = "Alle Betriebsparameter im grünen Bereich.";
+            if(q_sv > 1.5 || svi > 150) {
+                statusText = "WARNUNG";
+                statusColor = "text-amber-400";
+                actionMsg = "⚠️ Achtung: Schlammindex / Schlammvolumen erhöht! RLS oder ÜSS anpassen.";
+            }
+
+            document.getElementById('global-status').innerText = statusText;
+            document.getElementById('global-status').className = statusColor + " font-bold";
+            document.getElementById('action-text').innerText = actionMsg;
+
+            const effectiveQ = q * (1 - (fw / 100));
+            document.getElementById('nges-out-fracht').innerText = (effectiveQ * 55 / 1000).toFixed(1) + " kg/d";
+            document.getElementById('nges-out-pure').innerText = Math.round(effectiveQ) + " m³/d";
+            document.getElementById('aq-out-o2').innerText = "0.8 mg/l";
+            document.getElementById('aq-out-kwh').innerText = "620 kWh/d";
+            
+            calculateFaellmittel();
+        }
+
+        function syncLabToSliders() {
+            const labTS = parseFloat(document.getElementById('lab-ts').value);
+            const labSV = parseFloat(document.getElementById('lab-sv').value);
+            let calcCalculatedSVI = labTS > 0 ? Math.round(labSV / labTS) : 100;
+            document.getElementById('lab-svi').value = calcCalculatedSVI;
+
+            document.getElementById('in-ts').value = labTS
